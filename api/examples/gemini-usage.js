@@ -13,17 +13,17 @@ async function exampleSearch() {
   const searchQueries = [
     {
       query: 'wireless headphones for gaming',
-      strategy: 'fancy',
+      strategy: { type: 'fancy', realtime: true },
       description: 'Premium gaming headphones'
     },
     {
       query: 'laptop for students',
-      strategy: 'cost-effective',
+      strategy: { type: 'cost-effective', realtime: true },
       description: 'Budget-friendly student laptops'
     },
     {
       query: 'smartphone',
-      strategy: 'price-priority',
+      strategy: { type: 'price-priority', realtime: true },
       description: 'Best value smartphones'
     }
   ];
@@ -75,7 +75,7 @@ async function exampleSearchAndStore() {
 
   const searchConfig = {
     query: 'gaming mouse',
-    strategy: 'fancy',
+    strategy: { type: 'fancy', realtime: true },
     storeInDatabase: true
   };
 

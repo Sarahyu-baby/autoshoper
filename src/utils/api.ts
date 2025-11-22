@@ -1,4 +1,5 @@
-import { ProductSearchParams, ProductSearchResponse } from '../types/product';
+import { Product, ProductSearchParams, ProductSearchResponse } from '../types/product';
+import { ShoppingStrategy } from '../types/strategy';
 import { CommentAnalysis } from '../types/comment';
 import { RecommendationRequest, Recommendation } from '../types/strategy';
 
@@ -72,4 +73,40 @@ export const generateRecommendations = async (request: RecommendationRequest): P
   }
   
   return response.json();
+};
+
+export const geminiSearch = async (query: string, strategy: ShoppingStrategy): Promise<ProductSearchResponse> => {
+  const response = await fetch(`${API_BASE_URL}/gemini/search-only`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ customerInput: query, strategy: { type: strategy } })
+  });
+
+  const json = await response.json().catch(async () => ({ error: await response.text() }));
+  if (!response.ok) {
+    const msg = (json && (json.error || (json.data && json.data.error))) || 'Gemini search failed';
+    throw new Error(msg);
+  }
+
+  const data = json.data || json;
+  const products = (data.products || []).map((p: any): Product => ({
+    id: p.productUrl || `${p.brand}-${p.name}-${p.price}-${Math.random().toString(36).slice(2)}`,
+    name: p.name,
+    price: p.price,
+    brand: p.brand,
+    category: p.category || 'Unknown',
+    imageUrl: p.imageUrl || 'https://via.placeholder.com/300x300',
+    productUrl: p.productUrl || '#',
+    rating: typeof p.rating === 'number' ? p.rating : 0,
+    reviewCount: typeof p.reviewCount === 'number' ? p.reviewCount : 0,
+    sourcePlatform: p.sourcePlatform || 'Gemini',
+    createdAt: new Date()
+  }));
+
+  return {
+    products,
+    total: products.length,
+    page: 1,
+    limit: products.length
+  };
 };

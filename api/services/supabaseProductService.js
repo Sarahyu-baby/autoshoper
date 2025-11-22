@@ -1,4 +1,14 @@
-import { supabase } from '../config/supabase.js';
+let supabaseClient = null;
+async function getSupabase() {
+  if (supabaseClient) return supabaseClient;
+  try {
+    const mod = await import('../config/supabase.js');
+    supabaseClient = mod.supabase;
+    return supabaseClient;
+  } catch (e) {
+    throw new Error('Supabase not configured or failed to load');
+  }
+}
 
 /**
  * Creates a new product in the database
@@ -41,6 +51,7 @@ export const createProduct = async (productData) => {
       source_platform: productData.sourcePlatform,
     };
 
+    const supabase = await getSupabase();
     const { data, error } = await supabase
       .from('products')
       .insert([dbProductData])
@@ -94,6 +105,7 @@ export const getAllProducts = async (options = {}) => {
       filters = {}
     } = options;
 
+    const supabase = await getSupabase();
     let query = supabase
       .from('products')
       .select('*', { count: 'exact' });
@@ -174,6 +186,7 @@ export const getProductById = async (id) => {
       throw new Error('Invalid product ID format');
     }
 
+    const supabase = await getSupabase();
     const { data, error } = await supabase
       .from('products')
       .select('*')
@@ -261,6 +274,7 @@ export const updateProduct = async (id, updates) => {
     if (updates.reviewCount !== undefined) dbUpdates.review_count = updates.reviewCount;
     if (updates.sourcePlatform !== undefined) dbUpdates.source_platform = updates.sourcePlatform;
 
+    const supabase = await getSupabase();
     const { data, error } = await supabase
       .from('products')
       .update(dbUpdates)
@@ -316,6 +330,7 @@ export const deleteProduct = async (id) => {
       throw new Error('Invalid product ID format');
     }
 
+    const supabase = await getSupabase();
     const { error } = await supabase
       .from('products')
       .delete()
@@ -348,6 +363,7 @@ export const searchProducts = async (query, options = {}) => {
 
     const { limit = 20, offset = 0 } = options;
 
+    const supabase = await getSupabase();
     const { data, error, count } = await supabase
       .from('products')
       .select('*', { count: 'exact' })

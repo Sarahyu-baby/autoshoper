@@ -69,6 +69,7 @@ export default function Home() {
         <ProductSearch 
           onSearchResults={handleSearchResults}
           onLoading={setIsLoading}
+          strategy={strategy}
         />
 
         {products.length > 0 && (

@@ -1,18 +1,9 @@
-import axios from 'axios';
-
 /**
  * API testing script for Gemini product search endpoints
- * Usage: node api-tests/gemini-api-test.js
+ * Usage: node api/tests/gemini-api-test.js
  */
 
 const API_BASE_URL = process.env.API_BASE_URL || 'http://localhost:3001/api';
-const axiosInstance = axios.create({
-  baseURL: API_BASE_URL,
-  timeout: 30000,
-  headers: {
-    'Content-Type': 'application/json',
-  }
-});
 
 /**
  * Test the Gemini search endpoint
@@ -41,22 +32,30 @@ async function testGeminiSearch() {
   for (const testCase of testCases) {
     try {
       console.log(`\n🧪 Testing: "${testCase.query}" with strategy "${testCase.strategy}"`);
-      
-      const response = await axiosInstance.post('/gemini/search', testCase);
-      
-      console.log(`✅ Response received (${response.status})`);
-      console.log(`📊 Found ${response.data.products?.length || 0} products`);
-      console.log(`🎯 Strategy: ${response.data.strategy}`);
-      console.log(`⏱️  Search time: ${response.data.metadata?.searchTime}ms`);
-      
-      // Show first product as example
-      if (response.data.products?.length > 0) {
-        const product = response.data.products[0];
+      const body = {
+        customerInput: testCase.query,
+        strategy: { type: testCase.strategy },
+        storeResults: testCase.storeInDatabase,
+        realtime: true
+      };
+      const res = await fetch(`${API_BASE_URL}/gemini/search`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      });
+      const json = await res.json();
+      console.log(`✅ Response received (${res.status})`);
+      const data = json.data || json;
+      const products = data.products || [];
+      console.log(`📊 Found ${products.length} products`);
+      console.log(`🎯 Strategy: ${data.strategy}`);
+      console.log(`🌐 Realtime: ${data.realtime ? 'yes' : 'no'}`);
+      if (products.length > 0) {
+        const product = products[0];
         console.log(`📦 Top product: ${product.name} - $${product.price} (${product.brand})`);
       }
-      
     } catch (error) {
-      console.error(`❌ Test failed:`, error.response?.data || error.message);
+      console.error(`❌ Test failed:`, error.message);
     }
   }
 }
@@ -68,15 +67,21 @@ async function testSearchOnly() {
   console.log('\n🔍 Testing search-only endpoint...');
   
   const testData = {
-    query: 'gaming mouse',
-    strategy: 'fancy'
+    customerInput: 'gaming mouse',
+    strategy: { type: 'fancy' },
+    realtime: true
   };
   
   try {
-    const response = await axiosInstance.post('/gemini/search-only', testData);
-    
-    console.log(`✅ Response received (${response.status})`);
-    console.log(`📊 Found ${response.data.products?.length || 0} products`);
+    const res = await fetch(`${API_BASE_URL}/gemini/search-only`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(testData)
+    });
+    const json = await res.json();
+    const products = (json.data && json.data.products) || [];
+    console.log(`✅ Response received (${res.status})`);
+    console.log(`📊 Found ${products.length} products`);
     console.log(`📝 Note: Products were not stored in database`);
     
   } catch (error) {
@@ -91,13 +96,14 @@ async function testStrategiesEndpoint() {
   console.log('\n🎯 Testing strategies endpoint...');
   
   try {
-    const response = await axiosInstance.get('/gemini/strategies');
+    const res = await fetch(`${API_BASE_URL}/gemini/strategies`);
+    const response = await res.json();
     
     console.log(`✅ Response received (${response.status})`);
     console.log(`📋 Available strategies:`);
     
-    if (response.data.strategies) {
-      response.data.strategies.forEach(strategy => {
+    if (response.data) {
+      response.data.forEach(strategy => {
         console.log(`   • ${strategy.name}: ${strategy.description}`);
       });
     }
@@ -114,12 +120,13 @@ async function testExamplesEndpoint() {
   console.log('\n💡 Testing examples endpoint...');
   
   try {
-    const response = await axiosInstance.get('/gemini/examples');
+    const res = await fetch(`${API_BASE_URL}/gemini/examples`);
+    const response = await res.json();
     
     console.log(`✅ Response received (${response.status})`);
     console.log(`💬 Example queries:`);
     
-    if (response.data.examples) {
+    if (response.data) {
       response.data.examples.forEach((example, index) => {
         console.log(`   ${index + 1}. "${example.query}" (${example.strategy})`);
       });
@@ -163,19 +170,21 @@ async function testErrorHandling() {
     try {
       console.log(`\n🧪 Testing: ${testCase.name}`);
       
-      const response = await axiosInstance.post('/gemini/search', testCase.data);
-      
+      const res = await fetch(`${API_BASE_URL}/gemini/search`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(testCase.data)
+      });
       if (testCase.expectedError) {
-        console.log(`⚠️  Expected error but got success response`);
+        console.log(`⚠️  Expected error but got success response (${res.status})`);
       } else {
         console.log(`✅ No error as expected`);
       }
-      
     } catch (error) {
       if (testCase.expectedError) {
-        console.log(`✅ Error properly handled: ${error.response?.data?.error || error.message}`);
+        console.log(`✅ Error properly handled: ${error.message}`);
       } else {
-        console.log(`❌ Unexpected error: ${error.response?.data?.error || error.message}`);
+        console.log(`❌ Unexpected error: ${error.message}`);
       }
     }
   }

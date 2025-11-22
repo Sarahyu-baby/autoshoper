@@ -15,6 +15,7 @@ import authRoutes from './routes/auth.js'
 import productRoutes from './routes/products.js'
 import commentRoutes from './routes/comments.js'
 import recommendationRoutes from './routes/recommendations.js'
+import geminiRoutes from './routes/geminiProducts.js'
 
 // for esm mode
 const __filename = fileURLToPath(import.meta.url)
@@ -36,6 +37,7 @@ app.use('/api/auth', authRoutes)
 app.use('/api/products', productRoutes)
 app.use('/api/comments', commentRoutes)
 app.use('/api/recommendations', recommendationRoutes)
+app.use('/api/gemini', geminiRoutes)
 
 /**
  * health

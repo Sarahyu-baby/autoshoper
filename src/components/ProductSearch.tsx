@@ -1,12 +1,14 @@
 import { useState } from 'react';
-import { searchProducts } from '../utils/api';
+import { searchProducts, geminiSearch } from '../utils/api';
+import { ShoppingStrategy } from '../types/strategy';
 
 interface ProductSearchProps {
   onSearchResults: (results: any) => void;
   onLoading: (loading: boolean) => void;
+  strategy: ShoppingStrategy;
 }
 
-export default function ProductSearch({ onSearchResults, onLoading }: ProductSearchProps) {
+export default function ProductSearch({ onSearchResults, onLoading, strategy }: ProductSearchProps) {
   const [query, setQuery] = useState('');
   const [category, setCategory] = useState('');
   const [minPrice, setMinPrice] = useState('');
@@ -20,18 +22,12 @@ export default function ProductSearch({ onSearchResults, onLoading }: ProductSea
 
     onLoading(true);
     try {
-      const results = await searchProducts({
-        query,
-        category: category || undefined,
-        minPrice: minPrice ? parseFloat(minPrice) : undefined,
-        maxPrice: maxPrice ? parseFloat(maxPrice) : undefined,
-        brand: brand || undefined,
-        limit: 20
-      });
+      const results = await geminiSearch(query, strategy);
       onSearchResults(results);
     } catch (error) {
       console.error('Search error:', error);
-      alert('Failed to search products. Please try again.');
+      const message = error instanceof Error ? error.message : 'Failed to search products.';
+      alert(message);
     } finally {
       onLoading(false);
     }

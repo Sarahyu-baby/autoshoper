@@ -1,5 +1,5 @@
 import { createProduct } from './supabaseProductService.js';
-import { v4 as uuidv4 } from 'uuid';
+import crypto from 'node:crypto';
 
 /**
  * @typedef {Object} GeminiProduct
@@ -52,7 +52,7 @@ import { v4 as uuidv4 } from 'uuid';
 /**
  * Transform Gemini product data to Supabase format
  */
-export function transformGeminiToSupabase(geminiProduct: GeminiProduct): SupabaseProduct {
+export function transformGeminiToSupabase(geminiProduct) {
   return {
     name: geminiProduct.name.trim(),
     price: Math.max(0, parseFloat(geminiProduct.price.toString()) || 0),
@@ -70,10 +70,10 @@ export function transformGeminiToSupabase(geminiProduct: GeminiProduct): Supabas
  * Transform and store Gemini products in Supabase with additional metadata
  */
 export async function storeGeminiProductsWithMetadata(
-  geminiProducts: GeminiProduct[],
-  searchQuery: string,
-  strategy: string
-): Promise<{ stored: number; errors: string[]; products: TransformedProduct[] }> {
+  geminiProducts,
+  searchQuery,
+  strategy
+) {
   const results = {
     stored: 0,
     errors: [] as string[],
@@ -104,7 +104,7 @@ export async function storeGeminiProductsWithMetadata(
 
       if (data) {
         // Create transformed product with metadata
-        const transformedProduct: TransformedProduct = {
+        const transformedProduct = {
           ...data,
           description: geminiProduct.description || '',
           features: geminiProduct.features || [],
@@ -138,7 +138,7 @@ export async function storeGeminiProductsWithMetadata(
 /**
  * Validate and fix common URL issues
  */
-function validateAndFixUrl(url: string): string {
+function validateAndFixUrl(url) {
   if (!url || typeof url !== 'string') {
     return 'https://via.placeholder.com/300x300';
   }
@@ -164,11 +164,11 @@ function validateAndFixUrl(url: string): string {
  * Batch process Gemini products with error handling
  */
 export async function batchProcessGeminiProducts(
-  geminiProducts: GeminiProduct[],
-  batchSize: number = 5,
-  searchQuery: string,
-  strategy: string
-): Promise<{ stored: number; errors: string[]; products: TransformedProduct[] }> {
+  geminiProducts,
+  batchSize = 5,
+  searchQuery,
+  strategy
+) {
   const allResults = {
     stored: 0,
     errors: [] as string[],
@@ -206,37 +206,26 @@ export async function batchProcessGeminiProducts(
  * Generate search metadata for tracking
  */
 export function generateSearchMetadata(
-  searchQuery: string,
-  strategy: string,
-  geminiProducts: GeminiProduct[]
-): {
-  searchId: string;
-  timestamp: Date;
-  query: string;
-  strategy: string;
-  productCount: number;
-  priceRange: { min: number; max: number; average: number };
-  brandCount: number;
-  categoryCount: number;
-} {
+  searchQuery,
+  strategy,
+  geminiProducts
+) {
   const prices = geminiProducts.map(p => p.price).filter(p => p > 0);
   const brands = [...new Set(geminiProducts.map(p => p.brand).filter(Boolean))];
   const categories = [...new Set(geminiProducts.map(p => p.category).filter(Boolean))];
 
   return {
-    searchId: uuidv4(),
+    searchId: crypto.randomUUID(),
     timestamp: new Date(),
     query: searchQuery,
     strategy,
     productCount: geminiProducts.length,
     priceRange: {
-      min: Math.min(...prices),
-      max: Math.max(...prices),
-      average: prices.reduce((sum, price) => sum + price, 0) / prices.length
+      min: prices.length ? Math.min(...prices) : 0,
+      max: prices.length ? Math.max(...prices) : 0,
+      average: prices.length ? prices.reduce((sum, price) => sum + price, 0) / prices.length : 0
     },
     brandCount: brands.length,
     categoryCount: categories.length
   };
 }
-
-export { GeminiProduct, SupabaseProduct, TransformedProduct };

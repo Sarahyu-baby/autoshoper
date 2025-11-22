@@ -1,6 +1,5 @@
 import { Router } from 'express';
 import { searchAndStoreProducts, searchProductsWithGemini } from '../services/geminiProductSearch.js';
-import { ShoppingStrategy } from '../types/strategy.js';
 
 const router = Router();
 
@@ -10,7 +9,9 @@ const router = Router();
  */
 router.post('/search', async (req, res) => {
   try {
-    const { customerInput, strategy, storeResults = true } = req.body;
+    const { customerInput: rawInput, query, strategy: rawStrategy, storeResults = true, realtime = false } = req.body;
+    const customerInput = typeof rawInput === 'string' && rawInput.trim().length > 0 ? rawInput : (typeof query === 'string' ? query : '');
+    const strategy = typeof rawStrategy === 'string' ? { type: rawStrategy } : rawStrategy;
 
     // Validate required fields
     if (!customerInput || typeof customerInput !== 'string' || customerInput.trim().length === 0) {
@@ -28,7 +29,7 @@ router.post('/search', async (req, res) => {
     }
 
     // Validate strategy type
-    const validStrategies: ShoppingStrategy['type'][] = ['fancy', 'cost-effective', 'price-priority'];
+    const validStrategies = ['fancy', 'cost-effective', 'price-priority'];
     if (!validStrategies.includes(strategy.type)) {
       return res.status(400).json({
         success: false,
@@ -72,15 +73,17 @@ router.post('/search', async (req, res) => {
       });
     }
 
-    console.log(`🔍 Gemini search request: "${customerInput}" with ${strategy.type} strategy`);
+    console.log(`🔍 Gemini search request: "${customerInput}" with ${strategy.type} strategy${realtime ? ' [realtime]' : ''}`);
 
     // Perform search and optionally store results
-    const result = await searchAndStoreProducts(customerInput, strategy, storeResults);
+    const result = await searchAndStoreProducts(customerInput, { ...strategy, realtime }, storeResults);
 
     if (!result.success) {
-      return res.status(500).json({
+      const errMsg = result.errors[0] || 'Failed to search products';
+      const isClientError = /api key/i.test(errMsg) || /GOOGLE_API_KEY/i.test(errMsg);
+      return res.status(isClientError ? 400 : 500).json({
         success: false,
-        error: result.errors[0] || 'Failed to search products'
+        error: errMsg
       });
     }
 
@@ -90,7 +93,8 @@ router.post('/search', async (req, res) => {
         products: result.products,
         stored: result.stored,
         totalFound: result.products.length,
-        strategy: strategy.type
+        strategy: strategy.type,
+        realtime
       },
       message: storeResults 
         ? `Found ${result.products.length} products and stored ${result.stored} in database`
@@ -112,7 +116,9 @@ router.post('/search', async (req, res) => {
  */
 router.post('/search-only', async (req, res) => {
   try {
-    const { customerInput, strategy } = req.body;
+    const { customerInput: rawInput, query, strategy: rawStrategy, realtime = false } = req.body;
+    const customerInput = typeof rawInput === 'string' && rawInput.trim().length > 0 ? rawInput : (typeof query === 'string' ? query : '');
+    const strategy = typeof rawStrategy === 'string' ? { type: rawStrategy } : rawStrategy;
 
     // Validate required fields (same as above)
     if (!customerInput || typeof customerInput !== 'string' || customerInput.trim().length === 0) {
@@ -129,15 +135,17 @@ router.post('/search-only', async (req, res) => {
       });
     }
 
-    console.log(`🔍 Gemini search-only request: "${customerInput}" with ${strategy.type} strategy`);
+    console.log(`🔍 Gemini search-only request: "${customerInput}" with ${strategy.type} strategy${realtime ? ' [realtime]' : ''}`);
 
     // Perform search without storing
-    const result = await searchProductsWithGemini(customerInput, strategy);
+    const result = await searchProductsWithGemini(customerInput, { ...strategy, realtime });
 
     if (!result.success) {
-      return res.status(500).json({
+      const errMsg = result.error || 'Failed to search products';
+      const isClientError = /api key/i.test(errMsg) || /GOOGLE_API_KEY/i.test(errMsg);
+      return res.status(isClientError ? 400 : 500).json({
         success: false,
-        error: result.error || 'Failed to search products'
+        error: errMsg
       });
     }
 
@@ -146,7 +154,8 @@ router.post('/search-only', async (req, res) => {
       data: {
         products: result.products,
         totalFound: result.products.length,
-        strategy: strategy.type
+        strategy: strategy.type,
+        realtime
       },
       message: `Found ${result.products.length} products`
     });
@@ -254,6 +263,17 @@ router.get('/examples', (req, res) => {
     data: examples,
     message: 'Example search queries by strategy'
   });
+});
+
+// List available Gemini models for debugging
+router.get('/models', async (req, res) => {
+  try {
+    const { default: genAI } = await import('../config/gemini.js');
+    const listed = await genAI.listModels();
+    res.json({ success: true, data: listed.models || [] });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error?.message || 'Failed to list models' });
+  }
 });
 
 export default router;

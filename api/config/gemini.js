@@ -3,13 +3,10 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
-const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY || '');
+const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY || '', { apiVersion: 'v1' });
 
-/**
- * Configuration for different Gemini models
- */
 export const GEMINI_CONFIG = {
-  model: 'gemini-pro',
+  model: process.env.GEMINI_MODEL || 'gemini-1.5-flash',
   generationConfig: {
     temperature: 0.7,
     topK: 40,
@@ -17,35 +14,21 @@ export const GEMINI_CONFIG = {
     maxOutputTokens: 2048,
   },
   safetySettings: [
-    {
-      category: 'HARM_CATEGORY_HARASSMENT',
-      threshold: 'BLOCK_MEDIUM_AND_ABOVE',
-    },
-    {
-      category: 'HARM_CATEGORY_HATE_SPEECH',
-      threshold: 'BLOCK_MEDIUM_AND_ABOVE',
-    },
-    {
-      category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT',
-      threshold: 'BLOCK_MEDIUM_AND_ABOVE',
-    },
-    {
-      category: 'HARM_CATEGORY_DANGEROUS_CONTENT',
-      threshold: 'BLOCK_MEDIUM_AND_ABOVE',
-    },
+    { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_MEDIUM_AND_ABOVE' },
+    { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_MEDIUM_AND_ABOVE' },
+    { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_MEDIUM_AND_ABOVE' },
+    { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_MEDIUM_AND_ABOVE' },
   ],
 };
 
-/**
- * Get the Gemini model instance
- */
-export const getGeminiModel = () => {
+export const getGeminiModel = async (overrideModel) => {
   if (!process.env.GOOGLE_API_KEY) {
     throw new Error('GOOGLE_API_KEY is not configured. Please add it to your .env file.');
   }
-  
-  return genAI.getGenerativeModel({ 
-    model: GEMINI_CONFIG.model,
+  const modelName = overrideModel || process.env.GEMINI_MODEL || GEMINI_CONFIG.model;
+  const finalName = modelName.startsWith('models/') ? modelName : `models/${modelName}`;
+  return genAI.getGenerativeModel({
+    model: finalName,
     generationConfig: GEMINI_CONFIG.generationConfig,
     safetySettings: GEMINI_CONFIG.safetySettings,
   });
