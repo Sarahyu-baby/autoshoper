@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { searchProducts, geminiSearch } from '../utils/api';
+import { searchProducts } from '../utils/api';
 import { ShoppingStrategy } from '../types/strategy';
 
 interface ProductSearchProps {
@@ -22,7 +22,14 @@ export default function ProductSearch({ onSearchResults, onLoading, strategy }: 
 
     onLoading(true);
     try {
-      const results = await geminiSearch(query, strategy);
+      const results = await searchProducts({
+        query,
+        category: category || undefined,
+        minPrice: minPrice ? parseFloat(minPrice) : undefined,
+        maxPrice: maxPrice ? parseFloat(maxPrice) : undefined,
+        brand: brand || undefined,
+        limit: 20
+      });
       onSearchResults(results);
     } catch (error) {
       console.error('Search error:', error);

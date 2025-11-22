@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="600" height="400" viewBox="0 0 600 400">
+  <rect width="600" height="400" fill="#1f2a44"/>
+  <rect x="170" y="50" rx="34" ry="34" width="260" height="320" fill="#2e4053" stroke="#d6dbdf" stroke-width="4"/>
+  <text x="300" y="30" font-size="28" font-family="Arial, Helvetica, sans-serif" fill="#eaecee" text-anchor="middle">Xiaomi 14 Ultra</text>
+  <text x="300" y="370" font-size="16" font-family="Arial, Helvetica, sans-serif" fill="#eaecee" text-anchor="middle">Placeholder image</text>
+</svg>

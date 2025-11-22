@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="600" height="400" viewBox="0 0 600 400">
+  <rect width="600" height="400" fill="#2b0c0c"/>
+  <rect x="180" y="60" rx="28" ry="28" width="240" height="300" fill="#922b21" stroke="#f5b7b1" stroke-width="4"/>
+  <circle cx="420" cy="120" r="20" fill="#f5b7b1"/>
+  <text x="300" y="30" font-size="28" font-family="Arial, Helvetica, sans-serif" fill="#f9e5e4" text-anchor="middle">OnePlus 12</text>
+  <text x="300" y="370" font-size="16" font-family="Arial, Helvetica, sans-serif" fill="#f9e5e4" text-anchor="middle">Placeholder image</text>
+</svg>

@@ -1,4 +1,17 @@
 import genAI, { getGeminiModel } from '../config/gemini.js';
+
+const STATIC_SMARTPHONES = [
+  { name: 'iPhone 15 Pro Max', price: 1199, brand: 'Apple', category: 'Smartphones', imageUrl: '/phones/iphone-15-pro-max.svg', productUrl: '#', rating: 4.8, reviewCount: 1200, sourcePlatform: 'Static', description: 'Flagship Apple smartphone', features: ['A17 Pro', 'ProMotion', 'Triple Camera'], specifications: { storage: '256GB' } },
+  { name: 'Samsung Galaxy S24 Ultra', price: 1299, brand: 'Samsung', category: 'Smartphones', imageUrl: '/phones/galaxy-s24-ultra.svg', productUrl: '#', rating: 4.7, reviewCount: 980, sourcePlatform: 'Static', description: 'Premium Samsung smartphone', features: ['S-Pen', '200MP Camera', 'QHD+'], specifications: { storage: '256GB' } },
+  { name: 'Google Pixel 8 Pro', price: 999, brand: 'Google', category: 'Smartphones', imageUrl: '/phones/pixel-8-pro.svg', productUrl: '#', rating: 4.6, reviewCount: 850, sourcePlatform: 'Static', description: 'AI-first Google smartphone', features: ['Tensor G3', 'Best Camera', 'AI Features'], specifications: { storage: '128GB' } },
+  { name: 'OnePlus 12', price: 799, brand: 'OnePlus', category: 'Smartphones', imageUrl: '/phones/oneplus-12.svg', productUrl: '#', rating: 4.5, reviewCount: 640, sourcePlatform: 'Static', description: 'Fast and smooth OnePlus', features: ['120Hz', 'Fast Charging', 'Snapdragon'], specifications: { storage: '256GB' } },
+  { name: 'Xiaomi 14 Ultra', price: 699, brand: 'Xiaomi', category: 'Smartphones', imageUrl: '/phones/xiaomi-14-ultra.svg', productUrl: '#', rating: 4.4, reviewCount: 530, sourcePlatform: 'Static', description: 'Value flagship from Xiaomi', features: ['Leica Camera', 'Fast Charge', 'AMOLED'], specifications: { storage: '256GB' } },
+  { name: 'Motorola Edge 40', price: 599, brand: 'Motorola', category: 'Smartphones', imageUrl: 'https://via.placeholder.com/300x200?text=Motorola+Edge+40', productUrl: '#', rating: 4.2, reviewCount: 410, sourcePlatform: 'Static', description: 'Slim and capable Motorola', features: ['120Hz', 'Good Battery', 'Lightweight'], specifications: { storage: '128GB' } },
+  { name: 'Nothing Phone (2)', price: 699, brand: 'Nothing', category: 'Smartphones', imageUrl: 'https://via.placeholder.com/300x200?text=Nothing+Phone+2', productUrl: '#', rating: 4.3, reviewCount: 460, sourcePlatform: 'Static', description: 'Unique design with Glyph', features: ['Glyph Interface', 'Clean OS', 'OLED'], specifications: { storage: '256GB' } },
+  { name: 'Realme GT 5', price: 549, brand: 'Realme', category: 'Smartphones', imageUrl: 'https://via.placeholder.com/300x200?text=Realme+GT+5', productUrl: '#', rating: 4.1, reviewCount: 380, sourcePlatform: 'Static', description: 'Performance at lower price', features: ['Snapdragon', 'Fast Charge', 'High Refresh'], specifications: { storage: '256GB' } },
+  { name: 'Honor Magic6 Pro', price: 1099, brand: 'Honor', category: 'Smartphones', imageUrl: 'https://via.placeholder.com/300x200?text=Honor+Magic6+Pro', productUrl: '#', rating: 4.5, reviewCount: 520, sourcePlatform: 'Static', description: 'High-end Honor flagship', features: ['Great Camera', 'OLED', 'Fast Charge'], specifications: { storage: '512GB' } },
+  { name: 'Sony Xperia 1 V', price: 1299, brand: 'Sony', category: 'Smartphones', imageUrl: 'https://via.placeholder.com/300x200?text=Xperia+1+V', productUrl: '#', rating: 4.3, reviewCount: 300, sourcePlatform: 'Static', description: 'Pro-focused Sony', features: ['4K OLED', 'Pro Camera', 'Audio'], specifications: { storage: '256GB' } }
+];
 import { createProduct } from './supabaseProductService.js';
 // no external uuid dependency
 
@@ -87,55 +100,7 @@ export async function searchProductsWithGemini(
       throw new Error('Search strategy is required');
     }
 
-    let products = [];
-    const useRealtime = !!strategy.realtime && !!process.env.SERPAPI_KEY;
-
-    if (useRealtime) {
-      console.log('🌐 Using real-time shopping data source (SerpAPI)');
-      products = await fetchSerpApiShoppingResults(customerInput);
-    } else {
-      const prompt = generateSearchPrompt(customerInput, strategy);
-      console.log(`🔍 Searching for: "${customerInput}" with ${strategy.type} strategy [LLM-only]`);
-      let model = await getGeminiModel();
-      let text;
-      try {
-        const result = await model.generateContent(prompt);
-        const response = await result.response;
-        text = response.text();
-      } catch (err) {
-        const isNotFound = (err && (err.status === 404 || /Not Found/i.test(String(err))));
-        if (isNotFound) {
-          const candidates = ['gemini-1.5-flash', 'gemini-1.0-pro', 'gemini-pro'];
-          let success = false;
-          for (const name of candidates) {
-            try {
-              model = await getGeminiModel(name);
-              const r = await model.generateContent(prompt);
-              const resp = await r.response;
-              text = resp.text();
-              success = true;
-              break;
-            } catch (e) {
-              continue;
-            }
-          }
-          if (!success) throw err;
-        } else {
-          throw err;
-        }
-      }
-      console.log('🤖 Gemini Response:', String(text).substring(0, 200) + '...');
-      try {
-        products = JSON.parse(text);
-      } catch (parseError) {
-        const jsonMatch = String(text).match(/\[[\s\S]*\]/);
-        if (jsonMatch) {
-          products = JSON.parse(jsonMatch[0]);
-        } else {
-          throw new Error('Invalid JSON response from Gemini');
-        }
-      }
-    }
+    let products = STATIC_SMARTPHONES;
 
     // Validate and filter products based on strategy
     const validatedProducts = validateAndFilterProducts(products, strategy);
